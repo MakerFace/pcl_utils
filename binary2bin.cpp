@@ -123,18 +123,73 @@ int main(int argc, char const *argv[])
 
     std::string in_files[] = {"part13", "part14", "part17"};
     std::string in_folder = "/root/compdata/";
-    std::string out_folder = "/root/Datasets/";
+    std::string out_folder = "/Datasets/";
     if (strcmp(argv[1], "training") == 0)
     {
         std::cout << argv[1] << std::endl;
         out_folder.append("training");
         in_folder.append("lidarData");
+        std::vector<std::string> src_ann_list;
+        std::vector<std::string> src_pcd_list;
+        for (auto in : in_files)
+        {
+            auto in_path = path_join(in_folder, in);
+            auto src_ann = path_join(in_path, "annotation");
+            auto src_pcd = path_join(in_path, "pcd");
+            auto out_pcd = path_join(out_folder, "velodyne");
+            auto out_ann = path_join(out_folder, "label_2");
+            read_filelists(src_pcd, src_pcd_list, "pcd");
+            read_filelists(src_ann, src_ann_list, "txt");
+
+            std::cout << "pcd list size is " << src_pcd_list.size()
+                      << "\tanno list size is " << src_ann_list.size() << std::endl;
+
+            if (src_pcd_list.size() == src_ann_list.size())
+            {
+                std::cout << "start convert, please waiting" << std::endl;
+                for (size_t i = 0; i < src_pcd_list.size(); i++)
+                {
+                    auto src = path_join(src_ann, src_ann_list[i]);
+                    std::string count;
+                    if (argc == 3)
+                    {
+                        count = next_file(atoi(argv[2]));
+                    }
+                    else
+                    {
+                        count = next_file();
+                    }
+
+                    auto des = path_join(out_ann, count);
+                    des.append(".txt");
+                    copyAnnoFile(src, des);
+
+                    src = path_join(src_pcd, src_pcd_list[i]);
+                    des = path_join(out_pcd, count);
+                    des.append(".bin");
+                    convertPCDtoBin(src, des);
+                }
+            }
+        }
     }
+
     else if (strcmp(argv[1], "testing") == 0)
     {
         std::cout << argv[1] << std::endl;
         out_folder.append("testing");
         in_folder.append("test_pcd");
+        std::vector<std::string> src_pcd_list;
+        read_filelists(in_folder, src_pcd_list, "pcd");
+        std::string count;
+        for (size_t i = 0; i < src_pcd_list.size(); i++)
+        {
+            count = next_file();
+            auto src = path_join(in_folder, src_pcd_list[i]);
+            auto des = path_join(out_folder, "velodyne");
+            des = path_join(des, count);
+            des.append(".bin");
+            convertPCDtoBin(src, des);
+        }
     }
     else
     {
@@ -142,47 +197,5 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    std::vector<std::string> src_ann_list;
-    std::vector<std::string> src_pcd_list;
-    for (auto in : in_files)
-    {
-        auto in_path = path_join(in_folder, in);
-        auto src_ann = path_join(in_path, "annotation");
-        auto src_pcd = path_join(in_path, "pcd");
-        auto out_pcd = path_join(out_folder, "velodyne");
-        auto out_ann = path_join(out_folder, "label_2");
-        read_filelists(src_pcd, src_pcd_list, "pcd");
-        read_filelists(src_ann, src_ann_list, "txt");
-
-        std::cout << "pcd list size is " << src_pcd_list.size()
-                  << "\tanno list size is " << src_ann_list.size() << std::endl;
-
-        if (src_pcd_list.size() == src_ann_list.size())
-        {
-            std::cout << "start convert, please waiting" << std::endl;
-            for (size_t i = 0; i < src_pcd_list.size(); i++)
-            {
-                auto src = path_join(src_ann, src_ann_list[i]);
-                std::string count;
-                if (argc == 3)
-                {
-                    count = next_file(atoi(argv[2]));
-                }
-                else
-                {
-                    count = next_file();
-                }
-
-                auto des = path_join(out_ann, count);
-                des.append(".txt");
-                copyAnnoFile(src, des);
-
-                src = path_join(src_pcd, src_pcd_list[i]);
-                des = path_join(out_pcd, count);
-                des.append(".bin");
-                convertPCDtoBin(src, des);
-            }
-        }
-    }
     return 0;
 }
