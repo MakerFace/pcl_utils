@@ -123,7 +123,7 @@ int main(int argc, char const *argv[])
 
     std::string in_files[] = {"part13", "part14", "part17"};
     std::string in_folder = "/root/compdata/";
-    std::string out_folder = "/root/Datasets/";
+    std::string out_folder = "/Datasets/";
     if (strcmp(argv[1], "training") == 0)
     {
         std::cout << argv[1] << std::endl;
