@@ -90,6 +90,12 @@ void read_filelists(const std::string &dir_path, std::vector<std::string> &out_f
     struct dirent *ptr;
     DIR *dir;
     dir = opendir(dir_path.c_str());
+    if (dir == NULL)
+    {
+        std::cerr << "read folder failed" << std::endl;
+        exit(1);
+    }
+
     out_filelsits.clear();
     while ((ptr = readdir(dir)) != NULL)
     {
@@ -153,7 +159,8 @@ void readKittiPclBinData(std::string &in_file, std::string &out_file)
     pcl::PCDWriter writer;
 
     // Save DoN features
-    writer.write<pcl::PointXYZI>(out_file, *points, true);
+    // writer.write<pcl::PointXYZI>(out_file, *points, true);
+    pcl::io::savePCDFileASCII(out_file, *points);
 }
 
 void convertPCDtoBin(std::string &in_file, std::string &out_file)
@@ -224,7 +231,6 @@ void convertPCDtoBin(std::string &in_file, std::string &out_file)
 
     myFile.close();
 }
-
 
 int main(int argc, char **argv)
 {
