@@ -143,11 +143,12 @@ int main(int argc, char const *argv[])
         std::vector<std::string> src_ann_list;
         std::vector<std::string> src_pcd_list;
         auto h = height;
-#pragma omp parallel for
         // for (auto in : in_files)
         for (int i = 0; i < 10; i++)
         {
             std::string in = in_files[i];
+            std::cout << in << std::endl;
+
             auto in_path = path_join(in_folder, in);
             auto src_ann = path_join(in_path, "annotation");
             auto src_pcd = path_join(in_path, "pcd");
@@ -162,9 +163,11 @@ int main(int argc, char const *argv[])
             if (src_pcd_list.size() == src_ann_list.size())
             {
                 std::cout << "start convert, please waiting" << std::endl;
+#pragma omp parallel for
                 for (size_t i = 0; i < src_pcd_list.size(); i++)
                 {
-                    auto src = path_join(src_ann, src_ann_list[i]);
+                    std::string file_name = src_pcd_list[i].substr(0, src_pcd_list[i].length() - 4);
+                    auto src = path_join(src_ann, file_name).append(".txt");
                     std::string count;
                     if (argc == 3)
                     {
@@ -179,13 +182,12 @@ int main(int argc, char const *argv[])
                     des.append(".txt");
                     copyAnnoFile(src, des);
 
-                    src = path_join(src_pcd, src_pcd_list[i]);
+                    src = path_join(src_pcd, file_name).append(".pcd");
                     des = path_join(out_pcd, count);
                     des.append(".bin");
-                    convertPCDtoBin(src, des, *h - 2.2);
+                    convertPCDtoBin(src, des, h[i] - 2.2);
                 }
             }
-            h++;
         }
     }
 
