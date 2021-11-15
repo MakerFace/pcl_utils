@@ -87,7 +87,11 @@ void Compute(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, ofstream& outfile, cons
     b = coefficients->values[1];
     c = coefficients->values[2];
     d = coefficients->values[3];
-    outfile << subfilename << ": " << d << std::endl;
+    // outfile << subfilename << ": " << d << std::endl;
+    float up = d - 2;
+    std::cout << "origin ground " << d << std::endl;
+    std::cout << "up ground " << up << std::endl;
+    
 }
 
 int main(int argc, char **argv)
