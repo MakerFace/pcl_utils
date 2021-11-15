@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10)
 project(spinPointcloud)
 
 find_package(PCL 1.8 REQUIRED COMPONENTS common io filters visualization  segmentation sample_consensus)
