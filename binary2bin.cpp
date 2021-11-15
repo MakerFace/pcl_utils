@@ -5,7 +5,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <algorithm>
-
+#include <omp.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/common_headers.h>
 
@@ -15,7 +15,7 @@
 #include <boost/program_options.hpp>
 
 #include <fstream>
-
+static omp_lock_t lock;
 void copyAnnoFile(std::string &in_file, std::string &out_file)
 {
     std::cout << "copy " << in_file << " to " << out_file << std::endl;
@@ -27,7 +27,7 @@ void copyAnnoFile(std::string &in_file, std::string &out_file)
     in.close();
 }
 
-void convertPCDtoBin(std::string &in_file, std::string &out_file)
+void convertPCDtoBin(std::string &in_file, std::string &out_file, float h)
 {
     std::cout << "convert " << in_file << " to " << out_file << std::endl;
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
@@ -45,6 +45,7 @@ void convertPCDtoBin(std::string &in_file, std::string &out_file)
         char *ptr = buf;
         for (auto point = cloud->points.begin(); point != cloud->points.end(); point++)
         {
+            point->z += h;
             memcpy(ptr, &(point->x), sizeof(float));
             memcpy(ptr + sizeof(float), &(point->y), sizeof(float));
             memcpy(ptr + sizeof(float) * 2, &(point->z), sizeof(float));
@@ -107,7 +108,9 @@ std::string next_file(int start = 0)
     static int count = start;
     std::stringstream ss;
     ss << std::setw(6) << std::setfill('0') << count;
+    omp_set_lock(&lock);
     count++;
+    omp_unset_lock(&lock);
     return ss.str();
 }
 
@@ -121,18 +124,30 @@ int main(int argc, char const *argv[])
         exit(2);
     }
 
-    std::string in_files[] = {"part13", "part14", "part17"};
+    omp_init_lock(&lock);
     std::string in_folder = "/root/compdata/";
     std::string out_folder = "/Datasets/";
     if (strcmp(argv[1], "training") == 0)
     {
+        std::string in_files[] = {
+            "part1", "part10", "part12",
+            "part13", "part14", "part16", "part17",
+            "part3", "part4", "part5"};
+        float height[] = {
+            8.8862, 8.67158, 7.29706,
+            6.56072, 7.5917, 8.26836, 8.83257,
+            8.0304, 6.3609, 6.63761};
         std::cout << argv[1] << std::endl;
         out_folder.append("training");
         in_folder.append("lidarData");
         std::vector<std::string> src_ann_list;
         std::vector<std::string> src_pcd_list;
-        for (auto in : in_files)
+        auto h = height;
+#pragma omp parallel for
+        // for (auto in : in_files)
+        for (int i = 0; i < 10; i++)
         {
+            std::string in = in_files[i];
             auto in_path = path_join(in_folder, in);
             auto src_ann = path_join(in_path, "annotation");
             auto src_pcd = path_join(in_path, "pcd");
@@ -167,9 +182,10 @@ int main(int argc, char const *argv[])
                     src = path_join(src_pcd, src_pcd_list[i]);
                     des = path_join(out_pcd, count);
                     des.append(".bin");
-                    convertPCDtoBin(src, des);
+                    convertPCDtoBin(src, des, *h - 2.2);
                 }
             }
+            h++;
         }
     }
 
@@ -188,7 +204,7 @@ int main(int argc, char const *argv[])
             auto des = path_join(out_folder, "velodyne");
             des = path_join(des, count);
             des.append(".bin");
-            convertPCDtoBin(src, des);
+            convertPCDtoBin(src, des, 0);
         }
     }
     else
@@ -197,5 +213,6 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
+    omp_destroy_lock(&lock);
     return 0;
 }
