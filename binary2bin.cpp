@@ -5,7 +5,6 @@
 #include <sstream>
 #include <dirent.h>
 #include <algorithm>
-#include <omp.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/common_headers.h>
 
@@ -15,7 +14,6 @@
 #include <boost/program_options.hpp>
 
 #include <fstream>
-static omp_lock_t lock;
 void copyAnnoFile(std::string &in_file, std::string &out_file)
 {
     std::cout << "copy " << in_file << " to " << out_file << std::endl;
@@ -108,10 +106,16 @@ std::string next_file(int start = 0)
     static int count = start;
     std::stringstream ss;
     ss << std::setw(6) << std::setfill('0') << count;
-    omp_set_lock(&lock);
     count++;
-    omp_unset_lock(&lock);
     return ss.str();
+}
+
+void create_folders(std::vector<std::string> folders)
+{
+    for (auto f : folders)
+    {
+        std::cout << f << std::endl;
+    }
 }
 
 int main(int argc, char const *argv[])
@@ -124,7 +128,6 @@ int main(int argc, char const *argv[])
         exit(2);
     }
 
-    omp_init_lock(&lock);
     std::string in_folder = "/root/compdata/";
     std::string out_folder = "/Datasets/";
     if (strcmp(argv[1], "training") == 0)
@@ -154,6 +157,7 @@ int main(int argc, char const *argv[])
             auto src_pcd = path_join(in_path, "pcd");
             auto out_pcd = path_join(out_folder, "velodyne");
             auto out_ann = path_join(out_folder, "label_2");
+            create_folders({out_pcd, out_ann});
             read_filelists(src_pcd, src_pcd_list, "pcd");
             read_filelists(src_ann, src_ann_list, "txt");
 
@@ -163,7 +167,6 @@ int main(int argc, char const *argv[])
             if (src_pcd_list.size() == src_ann_list.size())
             {
                 std::cout << "start convert, please waiting" << std::endl;
-#pragma omp parallel for
                 for (size_t i = 0; i < src_pcd_list.size(); i++)
                 {
                     std::string file_name = src_pcd_list[i].substr(0, src_pcd_list[i].length() - 4);
@@ -215,6 +218,5 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    omp_destroy_lock(&lock);
     return 0;
 }
